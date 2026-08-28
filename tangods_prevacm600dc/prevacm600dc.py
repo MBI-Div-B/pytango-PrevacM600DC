@@ -11,8 +11,9 @@ DT = ModbusTcpClient.DATATYPE
 
 class PrevacM600DC(Device):
     """
-    This docstring should describe your Tango Class and optionally
-    what it depends on (drivers etc).
+    Pytango device server for the Prevac M600DC Magnetron DC Power Supply.
+    Only the subset of device features related to power supply operation
+    are implemented.
     """
 
     _last_status_query = 0
