@@ -31,11 +31,11 @@ class PrevacM600DC(Device):
 
     # ------ Attributes ------ #
 
-    plasma_on: bool = attribute(access=AttrWriteType.READ)
-    plasma_failure: bool = attribute(access=AttrWriteType.READ)
+    remote_control: bool = attribute(doc="Remote control enabled on device")
+    plasma_on: bool = attribute()
+    plasma_failure: bool = attribute()
 
     power: float = attribute(
-        access=AttrWriteType.READ,
         doc="Magnetron power",
         unit="W",
     )
@@ -53,17 +53,14 @@ class PrevacM600DC(Device):
     )
 
     output_active: int = attribute(
-        access=AttrWriteType.READ,
         doc="Number of active HV output [1, 2, 3]",
     )
 
     output_shortage: bool = attribute(
-        access=AttrWriteType.READ,
         doc="Power supply output is short or damaged",
     )
 
     voltage: float = attribute(
-        access=AttrWriteType.READ,
         doc="Magnetron voltage",
         unit="V",
     )
@@ -81,14 +78,13 @@ class PrevacM600DC(Device):
     )
 
     current: float = attribute(
-        access=AttrWriteType.READ,
         doc="Magnetron current",
-        unit="A",
+        unit="mA",
     )
     current_setpoint: float = attribute(
         access=AttrWriteType.READ_WRITE,
         doc="Magnetron current setpoint",
-        unit="A",
+        unit="mA",
     )
     current_ramp: int = attribute(
         access=AttrWriteType.READ_WRITE,
