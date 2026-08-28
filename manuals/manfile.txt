@@ -1,1 +1,3 @@
-Some manual.
+Device Documentation is available on the manufacturer's website:
+
+https://prevac.eu/product/magnetron-power-supply-m600dc-ps/

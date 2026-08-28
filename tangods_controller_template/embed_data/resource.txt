@@ -1,4 +1,0 @@
-# any additional data you want to embed to your python project
-1, 1
-2, 2
-3, 3
