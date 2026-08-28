@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tangods_controller_template"
+description = "It is a template for creating a new tango device server"
+# add the keywords for your project here
+keywords = ["tango device", "tango", "pytango"]
+readme = "README.md"
+authors = [
+    {name = "John Doe"},
+]
+requires-python = ">=3.10"
+# add the dependencies for your project here
+dependencies = ['numpy', 'pytango']
+license = {text = "MIT"}
+# specify the version of the package in the VERSION file
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/MBI-Div-B/pytango-TemplateDeviceServer"
+
+[project.scripts]
+# specife the name of the executable on the left hand side and the entry_point on the right hand side
+TemplateDeviceServer = "tangods_controller_tempalte:main"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.setuptools.packages.find]
+
+[tool.setuptools.package-data]
+# change the name of the package to the name of your package and add the files that should be included in the package
+tangods_controller_template = ["VERSION"]
+"tangods_controller_template.calibration" = ["*.txt"]
