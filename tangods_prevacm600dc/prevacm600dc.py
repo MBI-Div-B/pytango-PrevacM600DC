@@ -15,6 +15,9 @@ class PrevacM600DC(Device):
     what it depends on (drivers etc).
     """
 
+    _last_status_query = 0
+    _status_refresh_interval = 0.5
+
     # ------ Device Properties ------ #
 
     hostname: str = device_property(
@@ -46,6 +49,16 @@ class PrevacM600DC(Device):
         min_value=1,
         max_value=1000,
         unit="W/s",
+    )
+
+    output_active: int = attribute(
+        access=AttrWriteType.READ,
+        doc="Number of active HV output [1, 2, 3]",
+    )
+
+    output_shortage: bool = attribute(
+        access=AttrWriteType.READ,
+        doc="Power supply output is short or damaged",
     )
 
     voltage: float = attribute(
@@ -84,25 +97,23 @@ class PrevacM600DC(Device):
         unit="mA/s",
     )
 
-    output_active: int = attribute(
-        access=AttrWriteType.READ,
-        doc="Number of active HV output [1, 2, 3]",
-    )
-
-    output_power_limits: [int] = attribute(
+    output_power_limits: list[int] = attribute(
         access=AttrWriteType.READ_WRITE,
         doc="Power limits of outputs 1-3. 1...600 W",
         unit="W",
+        max_dim_x=3,
     )
-    output_voltage_limits: [int] = attribute(
+    output_voltage_limits: list[int] = attribute(
         access=AttrWriteType.READ_WRITE,
         doc="Voltage limits of outputs 1-3. 50...1200 V",
         unit="V",
+        max_dim_x=3,
     )
-    output_current_limits: [int] = attribute(
+    output_current_limits: list[int] = attribute(
         access=AttrWriteType.READ_WRITE,
         doc="Current limits of outputs 1-3. 1...1200 mA",
         unit="mA",
+        max_dim_x=3,
     )
 
     def init_device(self):
@@ -116,9 +127,6 @@ class PrevacM600DC(Device):
                 f"Could not establish connection to {self.host}:{self.port}"
             )
             sys.exit(1)
-
-        self._last_status_query = 0
-        self._status_refresh_interval = 0.5
 
     def delete_device(self):
         self.set_state(DevState.OFF)
@@ -152,7 +160,7 @@ class PrevacM600DC(Device):
         """Check device state and update state and status."""
         now = time.monotonic()
         if now - self._last_status_query > self._status_refresh_interval:
-            status = "Unknown"
+            status = []
             state = DevState.UNKNOWN
             
             devstate = self.read_register(0, 1, DT.INT16)
@@ -160,86 +168,99 @@ class PrevacM600DC(Device):
                 status.append("OPERATE")
                 state = DevState.MOVING
             else:
-                status = "STANDBY"
+                status.append("STANDBY")
                 state = DevState.ON
 
+            rc = self.read_remote_control()
+            if rc:
+                status.append("Remote control enabled")
+            else:
+                status.append("Remote control DISABLED on device!")
+
             self.set_state(state)
-            self.set_status(status)
+            self.set_status("\n".join(status))
             self._last_status_query = now
 
     # ------ Attribute R/W ------ #
-    def read_plasma_on(self) -> bool:
-        bits = self.read_register(2, 2, DT.BITS)
+    def read_remote_control(self):
+        return bool(self.read_register(1151, 1, DT.UINT16))
+
+    def read_plasma_on(self):
+        bits = self.read_register(2, 1, DT.BITS)
         return bits[0]
 
-    def read_plasma_failure(self) -> bool:
-        bits = self.read_register(2, 2, DT.BITS)
+    def read_plasma_failure(self):
+        bits = self.read_register(2, 1, DT.BITS)
         return bits[1]
 
-    def read_output_active(self) -> bool:
-        self.read_register(90, 1, DT.UINT16)
+    def read_output_active(self):
+        return self.read_register(90, 1, DT.UINT16)
 
-    def read_power(self) -> float:
+    def read_output_shortage(self):
+        bits = self.read_register(1, 1, DT.BITS)
+        return bits[7]
+
+    def read_power(self):
         return self.read_register(4, 2, DT.FLOAT32)
 
-    def read_power_setpoint(self) -> float:
+    def read_power_setpoint(self):
         return self.read_register(19, 2, DT.FLOAT32)
 
-    def write_power_setpoint(self, value: float) -> None:
+    def write_power_setpoint(self, value: float):
         self.write_register(19, value, DT.FLOAT32)
 
-    def read_power_ramp(self) -> int:
+    def read_power_ramp(self):
         return self.read_register(45, 1, DT.INT16)
 
-    def write_power_ramp(self, value: int) -> None:
+    def write_power_ramp(self, value: int):
         self.write_register(45, value, DT.INT16)
 
-    def read_voltage(self) -> float:
+    def read_voltage(self):
         return self.read_register(6, 2, DT.FLOAT32)
 
-    def read_voltage_setpoint(self) -> float:
+    def read_voltage_setpoint(self):
         return self.read_register(21, 2, DT.FLOAT32)
 
-    def write_voltage_setpoint(self, value: float) -> None:
+    def write_voltage_setpoint(self, value: float):
         self.write_register(21, value, DT.FLOAT32)
 
-    def read_voltage_ramp(self) -> int:
+    def read_voltage_ramp(self):
         return self.read_register(46, 1, DT.INT16)
 
-    def write_voltage_ramp(self, value: int) -> None:
+    def write_voltage_ramp(self, value: int):
         self.write_register(46, value, DT.INT16)
 
-    def read_current(self) -> float:
+    def read_current(self):
         return self.read_register(8, 2, DT.FLOAT32)
 
-    def read_current_setpoint(self) -> float:
+    def read_current_setpoint(self):
         return self.read_register(23, 2, DT.FLOAT32)
 
-    def write_current_setpoint(self, value: float) -> None:
+    def write_current_setpoint(self, value: float):
         return self.write_register(23, value, DT.FLOAT32)
 
-    def read_current_ramp(self) -> int:
+    def read_current_ramp(self):
         return self.read_register(47, 1, DT.INT16)
 
-    def write_current_ramp(self, value: int) -> None:
+    def write_current_ramp(self, value: int):
         self.write_register(47, value, DT.INT16)
 
-    def read_output_power_limits(self) -> [int]:
+    def read_output_power_limits(self):
         return self.read_register(36, 3, DT.INT16)
 
-    def write_output_power_limits(self, values: [int]) -> None:
+    def write_output_power_limits(self, values: [int]):
         self._write_output_limits(36, values, 1, 600)
 
-    def read_output_voltage_limits(self) -> [int]:
+    def read_output_voltage_limits(self):
         return self.read_register(39, 3, DT.INT16)
 
-    def write_output_voltage_limits(self, values: [int]) -> None:
+    def write_output_voltage_limits(self, values: [int]):
         self._write_output_limits(39, values, 50, 1200)
 
-    def read_output_current_limits(self) -> [int]:
+    def read_output_current_limits(self):
         return self.read_register(42, 3, DT.INT16)
 
-    def write_output_current_limits(self, values: [int]) -> None:
+    def write_output_current_limits(self, values: [int]):
         self._write_output_limits(42, values, 1, 1000)
 
     def _write_output_limits(self, register, values, vmin, vmax):
@@ -253,6 +274,8 @@ class PrevacM600DC(Device):
 
     @command
     def set_active_output(self, output: int) -> None:
+        if not (1 <= output <= 3):
+            raise ValueError("Valid outputs are 1 .. 3")
         self.write_register(89, output, DT.UINT16)
 
     @command
@@ -263,3 +286,6 @@ class PrevacM600DC(Device):
     def output_off(self) -> None:
         self.write_register(18, 1, DT.UINT16)
 
+    @command
+    def release_remote_control(self) -> None:
+        self.write_register(1000, 1, DT.UINT16)
